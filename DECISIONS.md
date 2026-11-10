@@ -55,3 +55,33 @@
 ## 2026-11-10 — Playwright pin
 - Decision: `@playwright/test` 1.64.0 to match the preinstalled Chromium build 1248.
 - Revert: bump and run `npx playwright install chromium`.
+## 2026-11-10 — OCR engine (bake-off)
+- Decision: `OCR_ENGINE=auto` picks PaddleOCR 3.4 with PP-OCRv5 mobile det + per-language PP-OCRv5 mobile rec (`en`, `latin`, `hi`, `te`); docTR 1.1 (fast_base + crnn_vgg16_bn) is the Latin-only fallback. Word boxes on one baseline are merged into lines by `merge_words`.
+- Options: PaddleOCR server det, PaddleOCR mobile det, docTR, Surya.
+- Why: mobile det matches server det quality on our samples at ~4x the speed and covers Devanagari and Telugu; docTR is faster but Latin only. Paddle runs with `enable_mkldnn=False` because paddlepaddle 3.3 oneDNN crashes on CPU (`ConvertPirAttribute2RuntimeAttribute`). Surya skipped: GPL-3.0 code, weights under a modified OpenRAIL-M with revenue-based commercial limits, and it pins its own torch/transformers; not cheap to wire.
+- Benchmark (`uv run python scripts/bakeoff.py`, 6 synthetic samples, CPU 8 cores, warm, ms per image):
+
+| engine | sample | CER | IoU | ms |
+| --- | --- | --- | --- | --- |
+| paddle-server | screenshot.png | 0.000 | 0.81 | 4505 |
+| paddle-server | poster.jpg | 0.000 | 0.82 | 4659 |
+| paddle-server | textured.jpg | 0.000 | 0.84 | 5998 |
+| paddle-server | rotated.png | 0.000 | 0.77 | 3715 |
+| paddle-server | hindi.png | 0.094 | 0.72 | 3837 |
+| paddle-server | telugu.png | 0.000 | 0.76 | 3839 |
+| paddle-server | **mean** | 0.016 | 0.78 | 4426 |
+| paddle | screenshot.png | 0.000 | 0.81 | 1651 |
+| paddle | poster.jpg | 0.000 | 0.79 | 1114 |
+| paddle | textured.jpg | 0.000 | 0.74 | 539 |
+| paddle | rotated.png | 0.000 | 0.74 | 916 |
+| paddle | hindi.png | 0.000 | 0.79 | 1323 |
+| paddle | telugu.png | 0.000 | 0.79 | 1433 |
+| paddle | **mean** | 0.000 | 0.78 | 1163 |
+| doctr | screenshot.png | 0.000 | 0.88 | 346 |
+| doctr | poster.jpg | 0.068 | 0.92 | 347 |
+| doctr | textured.jpg | 0.000 | 0.85 | 356 |
+| doctr | rotated.png | 0.000 | 0.80 | 423 |
+| doctr | hindi.png | n/a | n/a | n/a |
+| doctr | telugu.png | n/a | n/a | n/a |
+| doctr | **mean** (4 Latin) | 0.017 | 0.86 | 368 |
+- Revert: set `OCR_ENGINE=paddle-server` or `doctr`, or reorder `AUTO_ORDER` in `ocr.py`.

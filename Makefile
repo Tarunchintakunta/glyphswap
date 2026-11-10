@@ -2,23 +2,23 @@
 
 setup:
 	pnpm install
-	cd inference && uv sync
+	cd inference && uv sync --group ml
 
 models:
-	@echo "Model download arrives in the inference phase"
+	cd inference && uv run --group ml python scripts/download_models.py
 
 web:
 	pnpm --filter @glyphswap/web dev
 
 inference:
-	cd inference && uv run uvicorn glyphswap_inference.main:app --reload --port 8000
+	cd inference && uv run --group ml uvicorn glyphswap_inference.main:app --reload --port 8000
 
 dev:
 	$(MAKE) -j2 web inference
 
 eval:
-	@echo "Eval arrives in the inference phase"
+	cd inference && uv run --group ml python scripts/bakeoff.py
 
 check:
 	pnpm lint && pnpm typecheck && pnpm test && pnpm build
-	cd inference && uv run ruff check && uv run ruff format --check && uv run mypy . && uv run pytest -q
+	cd inference && uv run --group ml ruff check && uv run --group ml ruff format --check && uv run --group ml mypy . && uv run --group ml pytest -q
