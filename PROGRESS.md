@@ -7,7 +7,7 @@
 | 2 Neon | blocked | no Neon credentials on the build machine |
 | 3 Auth + login | in review | Better Auth + Drizzle, /login /signup card, /app placeholder, middleware, signup credits, e2e passes locally (`pnpm e2e`) |
 | 4 Landing | in review | hero slider, how it works, languages, API teaser, FAQ, legal pages, OG image, theme toggle; Lighthouse not run yet |
-| 5 Inference | pending | |
+| 5 Inference | in review | PaddleOCR PP-OCRv5 + docTR fallback, LaMa (Telea fallback), font match by SSIM over 14 OFL fonts, warp + Poisson blend = Result B, async jobs + SSE; A/C return "unavailable"; eval report and output review still to do |
 | 6 Editor | pending | |
 | 7 Public API | pending | |
 | 8 Deploy | blocked | no Vercel/Render credentials on the build machine |
