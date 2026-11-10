@@ -35,3 +35,13 @@
 - Options: neon-http (Neon only, no transactions), node-postgres, postgres.js v4.
 - Why: one driver for local Postgres and Neon (use the pooled URL on Vercel; `prepare: false` keeps PgBouncer happy) with real transactions for credit debits. postgres.js 4.x (released 2026-10-29) sends strings as `text` and breaks enum parameters, so pinned to ^3.4.9.
 - Revert: swap `createDb` back to `neon(url)` + `drizzle-orm/neon-http`.
+
+## 2026-11-10 — Auth
+- Decision: Better Auth 1.7 + Drizzle adapter on the existing schema (no schema changes needed); email/password with console verification links, `requireEmailVerification: false`; Google only when both env vars are set; signup credits granted in `databaseHooks.user.create.after`; middleware checks the session cookie only, pages re-check the session server-side.
+- Options: Auth.js, Lucia (deprecated), Clerk (hosted).
+- Why: SPEC names Better Auth; self-hosted, owns its tables in our Postgres.
+- Revert: drop `apps/web/src/lib/auth.ts` and the `/api/auth` route.
+
+## 2026-11-10 — Pool size env
+- Decision: `DATABASE_POOL_MAX` (default 10) and one cached client per process; local `.env` sets 1 because the PGlite dev server takes a single connection.
+- Revert: remove the env and pass nothing to `createDb`.
