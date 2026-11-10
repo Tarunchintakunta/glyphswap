@@ -10,6 +10,7 @@
   --color-muted: #6b6b66;
   --color-accent: #2f5bea;
   --color-accent-soft: #e8eefc;
+  --color-on-accent: #ffffff;
   --color-success: #16a34a;
   --color-danger: #dc2626;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -30,6 +31,7 @@
     --color-muted: #9a9a94;
     --color-accent: #6e8bff;
     --color-accent-soft: #1a2240;
+    --color-on-accent: #0b0b0c;
   }
 }
 
@@ -41,6 +43,7 @@
   --color-muted: #9a9a94;
   --color-accent: #6e8bff;
   --color-accent-soft: #1a2240;
+  --color-on-accent: #0b0b0c;
 }
 
 body {

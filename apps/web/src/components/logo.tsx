@@ -8,7 +8,7 @@ export function Logo() {
     >
       <span
         aria-hidden
-        className="grid size-7 place-items-center rounded-sm bg-accent font-display text-lg italic leading-none text-white"
+        className="grid size-7 place-items-center rounded-sm bg-accent font-display text-lg italic leading-none text-on-accent"
       >
         G
       </span>
