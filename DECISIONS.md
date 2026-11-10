@@ -45,3 +45,13 @@
 ## 2026-11-10 — Pool size env
 - Decision: `DATABASE_POOL_MAX` (default 10) and one cached client per process; local `.env` sets 1 because the PGlite dev server takes a single connection.
 - Revert: remove the env and pass nothing to `createDb`.
+
+## 2026-11-10 — Landing and theme
+- Decision: landing is a static server page; only the before/after slider (native range input over two inline SVG posters) and the theme toggle are client components. Theme = class on `<html>` set by a tiny inline script from `localStorage`, system via `prefers-color-scheme`. Added `--color-on-accent` (#0B0B0C in dark) because white on #6E8BFF is ~3:1 and fails AA. FAQ uses `<details>` (no JS). `/` first load 107 kB.
+- Options: next-themes, a canvas slider library, real eval photos (none committed yet).
+- Why: zero new dependencies, keyboard accessible slider for free.
+- Revert: swap the SVG posters for `samples/` images once Phase 9 lands.
+
+## 2026-11-10 — Playwright pin
+- Decision: `@playwright/test` 1.64.0 to match the preinstalled Chromium build 1248.
+- Revert: bump and run `npx playwright install chromium`.
