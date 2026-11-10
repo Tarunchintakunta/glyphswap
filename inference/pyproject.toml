@@ -55,8 +55,9 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["cv2.*", "paddleocr.*", "doctr.*", "torch.*"]
+module = ["paddleocr.*", "doctr.*", "torch.*"]
 ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 markers = ["models: needs downloaded weights or heavy OCR deps"]

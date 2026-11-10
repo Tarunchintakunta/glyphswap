@@ -36,7 +36,8 @@ def test_metrics() -> None:
     box = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
     assert edit_distance("kitten", "sitting") == 3
     assert iou(box, box) == pytest.approx(1)
-    assert score([("hi", box)], [line("hi", box, 1)]) == (0, pytest.approx(1))
+    cer, overlap = score([("hi", box)], [line("hi", box, 1)])
+    assert cer == 0 and overlap == pytest.approx(1)
     assert score([("hi", box)], []) == (1, 0)
 
 
