@@ -31,3 +31,27 @@
 - Decision: Phase 0 used public pages only; Playwright walk, network capture and free-edit baselines skipped per operator instruction.
 - Why: budget and boundary rules; contract taken from their public docs instead of traffic.
 - Revert: capture later into gitignored `teardown/`.
+- Decision: ~~neon-http~~ superseded 2026-11-10 by `postgres` (postgres.js 3.4) + `drizzle-orm/postgres-js`, `prepare: false`; ids are text UUIDs from `gen_random_uuid()`; Better Auth tables use text ids.
+- Options: neon-http (Neon only, no transactions), node-postgres, postgres.js v4.
+- Why: one driver for local Postgres and Neon (use the pooled URL on Vercel; `prepare: false` keeps PgBouncer happy) with real transactions for credit debits. postgres.js 4.x (released 2026-10-29) sends strings as `text` and breaks enum parameters, so pinned to ^3.4.9.
+- Revert: swap `createDb` back to `neon(url)` + `drizzle-orm/neon-http`.
+
+## 2026-11-10 — Auth
+- Decision: Better Auth 1.7 + Drizzle adapter on the existing schema (no schema changes needed); email/password with console verification links, `requireEmailVerification: false`; Google only when both env vars are set; signup credits granted in `databaseHooks.user.create.after`; middleware checks the session cookie only, pages re-check the session server-side.
+- Options: Auth.js, Lucia (deprecated), Clerk (hosted).
+- Why: SPEC names Better Auth; self-hosted, owns its tables in our Postgres.
+- Revert: drop `apps/web/src/lib/auth.ts` and the `/api/auth` route.
+
+## 2026-11-10 — Pool size env
+- Decision: `DATABASE_POOL_MAX` (default 10) and one cached client per process; local `.env` sets 1 because the PGlite dev server takes a single connection.
+- Revert: remove the env and pass nothing to `createDb`.
+
+## 2026-11-10 — Landing and theme
+- Decision: landing is a static server page; only the before/after slider (native range input over two inline SVG posters) and the theme toggle are client components. Theme = class on `<html>` set by a tiny inline script from `localStorage`, system via `prefers-color-scheme`. Added `--color-on-accent` (#0B0B0C in dark) because white on #6E8BFF is ~3:1 and fails AA. FAQ uses `<details>` (no JS). `/` first load 107 kB.
+- Options: next-themes, a canvas slider library, real eval photos (none committed yet).
+- Why: zero new dependencies, keyboard accessible slider for free.
+- Revert: swap the SVG posters for `samples/` images once Phase 9 lands.
+
+## 2026-11-10 — Playwright pin
+- Decision: `@playwright/test` 1.64.0 to match the preinstalled Chromium build 1248.
+- Revert: bump and run `npx playwright install chromium`.
