@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: glyphswap-inference
+    runtime: docker
+    rootDir: inference
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    healthCheckPath: /healthz
+    disk:
+      name: models
+      mountPath: /models
+      sizeGB: 10
+    envVars:
+      - key: INFERENCE_TOKEN
+        sync: false
+      - key: MAX_CONCURRENT_JOBS
+        value: "1"
+      - key: ENABLE_DIFFUSION
+        value: "false"
+      - key: ENABLE_UPSCALE
+        value: "false"
