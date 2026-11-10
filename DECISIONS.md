@@ -15,3 +15,19 @@
 - Decision: `@neondatabase/serverless` HTTP driver with `drizzle-orm/neon-http`; ids are text UUIDs from `gen_random_uuid()`; Better Auth tables use text ids.
 - Why: works on Vercel serverless and edge without pooling setup.
 - Revert: switch to `postgres-js` for long-lived workers.
+
+## 2026-11-10 — Teardown raises the public API bar
+- Decision: SPEC API section gains exactly-one image source incl. base64, 20 MB/8000 px API limit, `Idempotency-Key`, `match` semantics with `422 text_not_found`, per-result status with skip reasons, typed error codes with `Retry-After`, per-user rate/queue limits, `GET /v1/account`, cancel, and a timestamped webhook signature with 1/5/30 min retries.
+- Options: keep SPEC as is; copy the reference contract verbatim; adopt the stronger requirements under our own names.
+- Why: TEARDOWN.md parity P14–P25 and B7/B10 show these are table stakes; our own names and a replay-safe signature avoid copying.
+- Revert: drop the added bullets in SPEC "API contract".
+
+## 2026-11-10 — Retention stays at 72 h
+- Decision: keep 72 h deletion for uploads and results, not the reference API's 7-day result links.
+- Why: the reference site itself promises 72 h; shorter retention is the stronger privacy requirement.
+- Revert: raise `expires_at` default.
+
+## 2026-11-10 — Teardown scope
+- Decision: Phase 0 used public pages only; Playwright walk, network capture and free-edit baselines skipped per operator instruction.
+- Why: budget and boundary rules; contract taken from their public docs instead of traffic.
+- Revert: capture later into gitignored `teardown/`.

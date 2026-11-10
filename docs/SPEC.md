@@ -50,6 +50,14 @@ Auth: `Authorization: Bearer gs_live_…`. JSON. Errors: `{ "error": { "code", "
 - `GET /v1/jobs/:id` → `{ job_id, status, stage, progress, results: { A?, B?, C? : { url, width, height } }, error? }`.
 - Webhook: POST the same body as GET on terminal status, signed with `X-Glyphswap-Signature` (HMAC-SHA256).
 - `GET /v1/openapi.json`.
+- Inputs: exactly one of multipart `image`, `image_url`, `image_base64`, `image_id` (else `400 invalid_request`). API accepts ≤ 20 MB, 32–8000 px (processed at ≤ 4096 px); mime sniffed, EXIF orientation applied, alpha flattened, CMYK converted. `image_url`: ≤ 3 redirects, 15 s timeout, private IPs blocked. `image_id` valid 24 h for its owner.
+- Edits: ≤ 20 per job (web editor unlimited), text fields ≤ 200 chars, `\n` = new line, `match: "all" | "first"` for `old_text`, case-insensitive and trimmed; no match → `422 text_not_found` with candidate lines in `error.details.lines`.
+- `Idempotency-Key` header on `POST /v1/edit`, replayed for 24 h without a second debit.
+- Each result is `{ status: "succeeded" | "failed" | "skipped", url?, reason? }`; C skipped above 3:1 aspect. Debit only if at least one requested result succeeds.
+- Errors carry optional `details`; codes: `invalid_request`, `invalid_image`, `invalid_api_key`, `insufficient_credits`, `not_found`, `text_not_found`, `rate_limited`, `queue_full`, `internal`; job errors `timeout`, `inference_failed`, `invalid_image`, `canceled`. `429`/`503` send `Retry-After`.
+- Limits per user: 30 submits and 240 reads per rolling 60 s, 10 running + 30 queued jobs (`503 queue_full`), 10 min job timeout, ≤ 5 active API keys.
+- `GET /v1/account` → credits and limits. `DELETE /v1/jobs/:id` cancels a queued job and refunds.
+- Webhook header `X-Glyphswap-Signature: t=<unix>,v1=<hex>` over `<t>.<raw body>`; 2xx within 10 s; retries after 1, 5, 30 min with identical bytes.
 Internal inference API (token auth): `POST /ocr`, `POST /jobs`, `GET /jobs/:id/events` (SSE), `GET /healthz`.
 
 ## Pipeline details
