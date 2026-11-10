@@ -65,7 +65,11 @@ export const jobResponse = z.object({
   status: jobStatus,
   stage: z.string(),
   progress: z.number().int().min(0).max(100),
-  results: z.object({ A: resultAsset.optional(), B: resultAsset.optional(), C: resultAsset.optional() }),
+  results: z.object({
+    A: resultAsset.optional(),
+    B: resultAsset.optional(),
+    C: resultAsset.optional(),
+  }),
   error: z.object({ code: z.string(), message: z.string() }).optional(),
 })
 

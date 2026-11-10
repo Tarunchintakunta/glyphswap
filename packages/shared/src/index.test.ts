@@ -3,7 +3,10 @@ import { editRequest } from "./index"
 
 describe("editRequest", () => {
   it("accepts an image_id with old/new pairs", () => {
-    const parsed = editRequest.parse({ image_id: "img_1", edits: [{ old_text: "a", new_text: "b" }] })
+    const parsed = editRequest.parse({
+      image_id: "img_1",
+      edits: [{ old_text: "a", new_text: "b" }],
+    })
     expect(parsed.results).toEqual(["B"])
   })
 
@@ -17,6 +20,9 @@ describe("editRequest", () => {
   })
 
   it("accepts a remove box", () => {
-    expect(editRequest.safeParse({ image_id: "x", edits: [{ box: [0, 0, 10, 10], remove: true }] }).success).toBe(true)
+    expect(
+      editRequest.safeParse({ image_id: "x", edits: [{ box: [0, 0, 10, 10], remove: true }] })
+        .success,
+    ).toBe(true)
   })
 })

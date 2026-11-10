@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button"
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-content flex-col justify-center gap-8 px-6 py-24">
-      <p className="font-mono text-xs uppercase tracking-widest text-muted">Open-source · Runs locally</p>
+      <p className="font-mono text-xs uppercase tracking-widest text-muted">
+        Open-source · Runs locally
+      </p>
       <h1 className="font-display text-5xl leading-[1.05] sm:text-7xl">
         Edit the text inside <em className="text-accent">any image</em>.
       </h1>
