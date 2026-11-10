@@ -15,8 +15,10 @@
     "@glyphswap/db": "workspace:*",
     "@glyphswap/shared": "workspace:*",
     "@radix-ui/react-slot": "^1.2.0",
+    "better-auth": "^1.7.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.4",
     "geist": "^1.9.2",
     "next": "15.5.29",
     "react": "^19.2.0",
@@ -25,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.0",

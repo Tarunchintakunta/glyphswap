@@ -12,7 +12,10 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:migrate": "pnpm --filter @glyphswap/db db:migrate",
+    "db:generate": "pnpm --filter @glyphswap/db db:generate",
+    "e2e": "pnpm --filter @glyphswap/web e2e"
   },
   "devDependencies": {
     "prettier": "^3.6.0"

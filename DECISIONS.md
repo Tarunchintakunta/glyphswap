@@ -31,3 +31,7 @@
 - Decision: Phase 0 used public pages only; Playwright walk, network capture and free-edit baselines skipped per operator instruction.
 - Why: budget and boundary rules; contract taken from their public docs instead of traffic.
 - Revert: capture later into gitignored `teardown/`.
+- Decision: ~~neon-http~~ superseded 2026-11-10 by `postgres` (postgres.js 3.4) + `drizzle-orm/postgres-js`, `prepare: false`; ids are text UUIDs from `gen_random_uuid()`; Better Auth tables use text ids.
+- Options: neon-http (Neon only, no transactions), node-postgres, postgres.js v4.
+- Why: one driver for local Postgres and Neon (use the pooled URL on Vercel; `prepare: false` keeps PgBouncer happy) with real transactions for credit debits. postgres.js 4.x (released 2026-10-29) sends strings as `text` and breaks enum parameters, so pinned to ^3.4.9.
+- Revert: swap `createDb` back to `neon(url)` + `drizzle-orm/neon-http`.
