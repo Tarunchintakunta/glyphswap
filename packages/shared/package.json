@@ -5,19 +5,23 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc -p .",
     "test": "vitest run",
     "build": "tsc -p ."
   },
-  "dependencies": { "zod": "^3.23.8" },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
   "devDependencies": {
-    "@eslint/js": "^9.14.0",
-    "eslint": "^9.14.0",
-    "typescript": "^5.6.3",
-    "typescript-eslint": "^8.13.0",
-    "vitest": "^2.1.4"
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^3.2.4"
   }
 }

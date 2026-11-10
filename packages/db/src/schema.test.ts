@@ -20,11 +20,15 @@ describe("schema", () => {
     for (const table of tables) {
       const config = getTableConfig(table)
       const indexed = new Set(
-        config.indexes.map((i) => i.config.columns[0]).map((c) => ("name" in c! ? c.name : "")),
+        config.indexes.map((i) => {
+          const first = i.config.columns[0]
+          return first && "name" in first ? first.name : ""
+        }),
       )
       for (const fk of config.foreignKeys) {
-        const column = fk.reference().columns[0]!
-        expect(indexed.has(column.name), `${config.name}.${column.name}`).toBe(true)
+        for (const column of fk.reference().columns) {
+          expect(indexed.has(column.name), `${config.name}.${column.name}`).toBe(true)
+        }
       }
     }
   })

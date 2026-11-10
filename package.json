@@ -2,7 +2,9 @@
   "name": "glyphswap",
   "private": true,
   "packageManager": "pnpm@9.15.9",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "pnpm --filter @glyphswap/web dev",
     "build": "pnpm -r build",
@@ -13,6 +15,6 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "prettier": "^3.3.3"
+    "prettier": "^3.6.0"
   }
 }
