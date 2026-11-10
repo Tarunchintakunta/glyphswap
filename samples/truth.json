@@ -1,5 +1,6 @@
 {
  "screenshot.png": {
+  "lang": "en",
   "lines": [
    {
     "text": "Account settings",
@@ -92,6 +93,7 @@
   }
  },
  "poster.jpg": {
+  "lang": "en",
   "lines": [
    {
     "text": "SUMMER",
@@ -163,6 +165,7 @@
   }
  },
  "textured.jpg": {
+  "lang": "en",
   "lines": [
    {
     "text": "Handmade Bread",
@@ -213,6 +216,7 @@
   }
  },
  "rotated.png": {
+  "lang": "en",
   "lines": [
    {
     "text": "Grand Opening",
@@ -263,6 +267,7 @@
   }
  },
  "hindi.png": {
+  "lang": "hi",
   "lines": [
    {
     "text": "नमस्ते दुनिया",
@@ -313,6 +318,7 @@
   }
  },
  "telugu.png": {
+  "lang": "te",
   "lines": [
    {
     "text": "స్వాగతం",

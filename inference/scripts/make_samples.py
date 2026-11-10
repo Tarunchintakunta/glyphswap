@@ -53,7 +53,7 @@ def draw(background: Image.Image, texts: list[Text]) -> tuple[Image.Image, list[
         font = ImageFont.truetype(str(FONTS / item.font), item.size)
         if item.weight:
             font.set_variation_by_name(item.weight)
-        left, top, right, bottom = font.getbbox(item.text)
+        left, top, right, bottom = (int(v) for v in font.getbbox(item.text))
         pad = item.size
         layer = Image.new("RGBA", (right + 2 * pad, bottom + 2 * pad), (0, 0, 0, 0))
         ImageDraw.Draw(layer).text((pad, pad), item.text, font=font, fill=item.color)
@@ -88,7 +88,16 @@ SAMPLES: dict[str, tuple[Image.Image, list[Text], int, str]] = {
         gradient((255, 94, 98), (60, 40, 140)),
         [
             Text("SUMMER", "BebasNeue-Regular.ttf", 120, (255, 255, 255), 60, 40),
-            Text("Music Festival 2026", "Montserrat[wght].ttf", 44, (255, 236, 179), 60, 210, 0, "SemiBold"),
+            Text(
+                "Music Festival 2026",
+                "Montserrat[wght].ttf",
+                44,
+                (255, 236, 179),
+                60,
+                210,
+                0,
+                "SemiBold",
+            ),
             Text("Tickets on sale now", "PlayfairDisplay[wght].ttf", 36, (255, 255, 255), 60, 320),
         ],
         0,
@@ -116,7 +125,9 @@ SAMPLES: dict[str, tuple[Image.Image, list[Text], int, str]] = {
         flat((255, 250, 240)),
         [
             Text("नमस्ते दुनिया", "NotoSansDevanagari[wdth,wght].ttf", 64, (153, 27, 27), 60, 80),
-            Text("आज का मौसम अच्छा है", "NotoSansDevanagari[wdth,wght].ttf", 40, (31, 41, 55), 60, 240),
+            Text(
+                "आज का मौसम अच्छा है", "NotoSansDevanagari[wdth,wght].ttf", 40, (31, 41, 55), 60, 240
+            ),
         ],
         0,
         "शुभ प्रभात",
@@ -139,7 +150,9 @@ def main() -> None:
     for name, (background, texts, edit_line, new_text) in SAMPLES.items():
         image, lines = draw(background, texts)
         image.save(OUT / name, quality=92)
-        truth[name] = {"lines": lines, "edit": {"line": edit_line, "new_text": new_text}}
+        lang = {"hindi.png": "hi", "telugu.png": "te"}.get(name, "en")
+        edit = {"line": edit_line, "new_text": new_text}
+        truth[name] = {"lang": lang, "lines": lines, "edit": edit}
     (OUT / "truth.json").write_text(json.dumps(truth, ensure_ascii=False, indent=1) + "\n")
 
 
