@@ -1,14 +1,25 @@
+import asyncio
+from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Annotated, Literal
-from uuid import uuid4
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile, status
-from pydantic import BaseModel, Field
+import cv2
+import numpy as np
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
+from fastapi.responses import Response, StreamingResponse
+from pydantic import BaseModel, Field, ValidationError
+from starlette.concurrency import run_in_threadpool
 
+from glyphswap_inference import ocr
+from glyphswap_inference.jobs import Job, JobStatus, Kind, queue
+from glyphswap_inference.pipeline import Edit
 from glyphswap_inference.settings import settings
 
-app = FastAPI(title="Glyphswap inference", version="0.0.0")
+app = FastAPI(title="Glyphswap inference", version="0.1.0")
 
 ALLOWED_MIME = {"image/png", "image/jpeg", "image/webp"}
+Lang = Literal["en", "latin", "hi", "te"]
+Polygon = Annotated[list[tuple[float, float]], Field(min_length=4, max_length=4)]
 
 
 def require_token(authorization: Annotated[str | None, Header()] = None) -> None:
@@ -24,31 +35,69 @@ class Health(BaseModel):
 class OcrLine(BaseModel):
     id: str
     text: str
-    polygon: list[tuple[float, float]] = Field(min_length=4, max_length=4)
+    polygon: Polygon
     angle: float
     confidence: float
 
 
 class OcrResponse(BaseModel):
     engine: str
+    width: int
+    height: int
     lines: list[OcrLine]
 
 
 class EditItem(BaseModel):
-    polygon: list[tuple[float, float]] = Field(min_length=4, max_length=4)
-    new_text: str = ""
+    polygon: Polygon
+    new_text: str = Field(default="", max_length=500)
+    old_text: str | None = Field(default=None, max_length=500)
     remove: bool = False
 
 
 class JobRequest(BaseModel):
-    image_key: str
-    edits: list[EditItem] = Field(min_length=1)
-    results: list[Literal["A", "B", "C"]] = ["B"]
+    image_key: str | None = None
+    edits: list[EditItem] = Field(min_length=1, max_length=100)
+    results: list[Kind] = Field(default=["B"], min_length=1)
+    lang: Lang = "en"
 
 
 class JobAccepted(BaseModel):
     job_id: str
     status: Literal["queued"]
+
+
+def decode(data: bytes) -> np.ndarray:
+    if len(data) > settings.max_upload_mb * 1024 * 1024:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "image too large")
+    image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "image could not be decoded")
+    scale = settings.max_side / max(image.shape[:2])
+    if scale < 1:
+        size = (round(image.shape[1] * scale), round(image.shape[0] * scale))
+        image = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
+    return np.asarray(image)
+
+
+async def read_upload(image: UploadFile) -> np.ndarray:
+    if image.content_type not in ALLOWED_MIME:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "unsupported image type")
+    return decode(await image.read())
+
+
+def read_stored(key: str) -> np.ndarray:
+    root = Path(settings.local_storage_dir).resolve()
+    path = (root / key).resolve()
+    if not path.is_relative_to(root) or not path.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "image_key not found")
+    return decode(path.read_bytes())
+
+
+def find_job(job_id: str) -> Job:
+    job = queue.jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "job not found")
+    return job
 
 
 @app.get("/healthz")
@@ -57,15 +106,87 @@ def healthz() -> Health:
 
 
 @app.post("/ocr", dependencies=[Depends(require_token)])
-async def ocr(image: Annotated[UploadFile, File()]) -> OcrResponse:
-    if image.content_type not in ALLOWED_MIME:
-        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "unsupported image type")
-    data = await image.read()
-    if len(data) > settings.max_upload_mb * 1024 * 1024:
-        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "image too large")
-    return OcrResponse(engine="stub", lines=[])
+async def run_ocr(
+    image: Annotated[UploadFile, File()], lang: Annotated[Lang, Form()] = "en"
+) -> OcrResponse:
+    pixels = await read_upload(image)
+    try:
+        engine, lines = await run_in_threadpool(ocr.recognize, pixels, lang)
+    except ocr.OcrUnavailableError as error:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(error)) from error
+    height, width = pixels.shape[:2]
+    return OcrResponse(
+        engine=engine,
+        width=width,
+        height=height,
+        lines=[
+            OcrLine(
+                id=f"l{index}",
+                text=item.text,
+                polygon=item.polygon,
+                angle=item.angle,
+                confidence=item.confidence,
+            )
+            for index, item in enumerate(lines)
+        ],
+    )
 
 
 @app.post("/jobs", status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(require_token)])
-def create_job(request: JobRequest) -> JobAccepted:
-    return JobAccepted(job_id=uuid4().hex, status="queued")
+async def create_job(
+    payload: Annotated[str, Form()], image: Annotated[UploadFile | None, File()] = None
+) -> JobAccepted:
+    try:
+        request = JobRequest.model_validate_json(payload)
+    except ValidationError as error:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, error.errors(include_url=False)
+        ) from error
+    if image is not None:
+        pixels = await read_upload(image)
+    elif request.image_key:
+        pixels = read_stored(request.image_key)
+    else:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "image or image_key is required")
+    edits = [
+        Edit(item.polygon, item.new_text, item.remove, item.old_text) for item in request.edits
+    ]
+    job = Job(pixels, edits, list(dict.fromkeys(request.results)), request.lang)
+    queue.submit(job)
+    return JobAccepted(job_id=job.id, status="queued")
+
+
+@app.get("/jobs/{job_id}", dependencies=[Depends(require_token)])
+def get_job(job_id: str) -> JobStatus:
+    return find_job(job_id).status
+
+
+@app.get("/jobs/{job_id}/events", dependencies=[Depends(require_token)])
+async def job_events(job_id: str) -> StreamingResponse:
+    job = find_job(job_id)
+
+    async def stream() -> AsyncIterator[str]:
+        last = ""
+        while True:
+            current = job.status.model_dump_json()
+            if current != last:
+                last = current
+                yield f"event: progress\ndata: {current}\n\n"
+            if job.status.status in {"done", "failed"}:
+                return
+            await asyncio.sleep(0.2)
+
+    return StreamingResponse(
+        stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"}
+    )
+
+
+@app.get("/jobs/{job_id}/result/{kind}", dependencies=[Depends(require_token)])
+def job_result(job_id: str, kind: Kind) -> Response:
+    job = find_job(job_id)
+    data = job.outputs.get(kind)
+    if data is None:
+        info = job.status.results.get(kind)
+        detail = info.model_dump() if info else {"status": "not requested"}
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail)
+    return Response(data, media_type="image/png")
