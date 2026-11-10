@@ -2,7 +2,7 @@
 
 | Phase | Status | Notes |
 | --- | --- | --- |
-| 0 Teardown | pending | |
+| 0 Teardown | in review | TEARDOWN.md from public pages; 30 parity, 10 beat-it items; screenshots, network capture and baselines skipped |
 | 1 Bootstrap | in review | monorepo, CI, stub inference, Drizzle schema |
 | 2 Neon | blocked | no Neon credentials on the build machine |
 | 3 Auth + login | pending | |
