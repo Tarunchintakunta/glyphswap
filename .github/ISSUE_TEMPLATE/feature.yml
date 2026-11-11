@@ -1,0 +1,14 @@
+name: Feature
+description: A change you want in Glyphswap
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: What should change
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Why
+    validations:
+      required: true
