@@ -9,6 +9,7 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 export const googleEnabled = Boolean(googleClientId && googleClientSecret)
 
 export const auth = betterAuth({
+  trustedOrigins: ["http://localhost:3000", "http://127.0.0.1:3000"],
   database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: { enabled: true, requireEmailVerification: false },
   emailVerification: {
@@ -21,6 +22,9 @@ export const auth = betterAuth({
     googleClientId && googleClientSecret
       ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
       : {},
+  user: {
+    deleteUser: { enabled: true },
+  },
   databaseHooks: {
     user: {
       create: {

@@ -73,8 +73,10 @@ def blend(background: np.ndarray, alpha: np.ndarray, style: Style, seed: int = 0
         np.uint8
     )
     points = cv2.findNonZero((alpha > 0.01).astype(np.uint8))
+    if points is None:
+        return composite
     hull = np.zeros(alpha.shape, np.uint8)
-    cv2.fillConvexPoly(hull, cv2.convexHull(points), 255)
+    cv2.fillConvexPoly(hull, cv2.convexHull(points), (255,))
     region = cv2.dilate(hull, np.ones((9, 9), np.uint8))
     region[[0, -1], :] = 0
     region[:, [0, -1]] = 0

@@ -15,6 +15,9 @@ export function SiteFooter() {
           <a href={githubUrl} className="hover:text-text">
             GitHub
           </a>
+          <Link href="/docs" className="hover:text-text">
+            Docs
+          </Link>
           <Link href="/legal/terms" className="hover:text-text">
             Terms
           </Link>

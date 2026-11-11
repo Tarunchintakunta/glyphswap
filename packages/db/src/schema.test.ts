@@ -16,6 +16,8 @@ describe("schema", () => {
       schema.result,
       schema.creditLedger,
       schema.rateEvent,
+      schema.idempotency,
+      schema.webhookOutbox,
     ]
     for (const table of tables) {
       const config = getTableConfig(table)

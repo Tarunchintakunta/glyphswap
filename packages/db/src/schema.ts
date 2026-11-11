@@ -9,6 +9,7 @@ import {
   real,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core"
 
 const id = () =>
@@ -163,14 +164,13 @@ export const job = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    imageId: text("image_id")
-      .notNull()
-      .references(() => image.id, { onDelete: "cascade" }),
+    imageId: text("image_id").references(() => image.id, { onDelete: "set null" }),
     apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "set null" }),
+    inferenceId: text("inference_id"),
     status: jobStatus("status").notNull().default("queued"),
     stage: text("stage").notNull().default("queued"),
     progress: integer("progress").notNull().default(0),
-    flags: jsonb("flags").$type<{ results: ("A" | "B" | "C")[] }>().notNull(),
+    flags: jsonb("flags").$type<{ results: ("A" | "B" | "C")[]; lang?: string }>().notNull(),
     error: jsonb("error").$type<{ code: string; message: string }>(),
     webhookUrl: text("webhook_url"),
     createdAt: createdAt(),
@@ -212,11 +212,16 @@ export const result = pgTable(
       .notNull()
       .references(() => job.id, { onDelete: "cascade" }),
     kind: resultKind("kind").notNull(),
-    storageKey: text("storage_key").notNull(),
-    width: integer("width").notNull(),
-    height: integer("height").notNull(),
+    storageKey: text("storage_key"),
+    status: text("status").notNull().default("succeeded"),
+    reason: text("reason"),
+    width: integer("width").notNull().default(0),
+    height: integer("height").notNull().default(0),
   },
-  (t) => [index("result_job_idx").on(t.jobId)],
+  (t) => [
+    index("result_job_idx").on(t.jobId),
+    unique("result_job_kind_unique").on(t.jobId, t.kind),
+  ],
 )
 
 export const creditLedger = pgTable(
@@ -238,10 +243,56 @@ export const rateEvent = pgTable(
   "rate_event",
   {
     id: id(),
-    apiKeyId: text("api_key_id")
-      .notNull()
-      .references(() => apiKey.id, { onDelete: "cascade" }),
+    apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull().default("read"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("rate_event_key_at_idx").on(t.apiKeyId, t.at)],
+  (t) => [
+    index("rate_event_key_at_idx").on(t.apiKeyId, t.at),
+    index("rate_event_user_at_idx").on(t.userId, t.at),
+  ],
+)
+
+export const idempotency = pgTable(
+  "idempotency",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => job.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique("idempotency_user_key_unique").on(t.userId, t.key),
+    index("idempotency_user_idx").on(t.userId),
+    index("idempotency_job_idx").on(t.jobId),
+  ],
+)
+
+export const webhookOutbox = pgTable(
+  "webhook_outbox",
+  {
+    id: id(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => job.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    body: text("body").notNull(),
+    signature: text("signature").notNull(),
+    attempt: integer("attempt").notNull().default(0),
+    nextAt: timestamp("next_at", { withTimezone: true }).notNull().defaultNow(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    lastStatus: integer("last_status"),
+  },
+  (t) => [
+    unique("webhook_outbox_job_unique").on(t.jobId),
+    index("webhook_outbox_job_idx").on(t.jobId),
+    index("webhook_outbox_next_idx").on(t.nextAt),
+  ],
 )

@@ -17,6 +17,9 @@ dev:
 	$(MAKE) -j2 web inference
 
 eval:
+	cd inference && uv run --group ml python scripts/eval_report.py
+
+bakeoff:
 	cd inference && uv run --group ml python scripts/bakeoff.py
 
 check:

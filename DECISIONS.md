@@ -36,6 +36,30 @@
 - Why: one driver for local Postgres and Neon (use the pooled URL on Vercel; `prepare: false` keeps PgBouncer happy) with real transactions for credit debits. postgres.js 4.x (released 2026-10-29) sends strings as `text` and breaks enum parameters, so pinned to ^3.4.9.
 - Revert: swap `createDb` back to `neon(url)` + `drizzle-orm/neon-http`.
 
+## 2026-11-11 — Result C is a 2× Lanczos upsample
+- Decision: when `ENABLE_UPSCALE` is true (the default), Result C is a 2× `cv2.INTER_LANCZOS4` upsample of Result B. Frames whose long side is more than 3× the short side are skipped with `aspect_ratio_unsupported`. When the flag is false the reason is `disabled (ENABLE_UPSCALE=false)`. Real-ESRGAN is not bundled.
+- Options: vendor Real-ESRGAN weights; leave C unavailable; Lanczos.
+- Why: the parity item needs a real C with the 3:1 skip, and a weight download is not required for a usable upsample.
+- Revert: set `ENABLE_UPSCALE=false`, or replace `finish_c` with a model call.
+
+## 2026-11-11 — Debit the credit when the job row is created
+- Decision: `openJob` inserts the job and a `-1` ledger row in one transaction. A failed job, a cancel, a timeout, or a job whose every result is skipped or failed writes one `refund` row. A later refund for the same job is a no-op.
+- Options: debit only after success; hold a reservation row.
+- Why: one transaction keeps the balance honest if the process dies after accept, and the refund path restores it.
+- Revert: move the ledger insert to `closeJob` on success.
+
+## 2026-11-11 — Web uploads stay at 8 MB and inference accepts 20 MB
+- Decision: the web editor reads `MAX_UPLOAD_MB` (default 8). Inference no longer maps that env name; it uses `max_input_bytes` (20 MB), `min_input_side` 32 and `max_input_side` 8000, then downscales to 4096.
+- Options: one shared limit; keep the pydantic field and rename the web env.
+- Why: the public API limit is 20 MB and the editor limit is 8 MB. Sharing the env name made inference reject its own larger uploads.
+- Revert: put `max_upload_mb` back on inference settings.
+
+## 2026-11-11 — image_id lasts 24 h, files last 72 h, jobs keep their edits
+- Decision: an API `image_id` is accepted for 24 h. Storage retention stays 72 h. `job.image_id` is nullable `ON DELETE SET NULL`, and `edit.line_id` is `ON DELETE SET NULL`, so the hourly cron can delete pixels and still leave the edit rows.
+- Options: cascade jobs away with the image; keep files for 7 days.
+- Why: parity wants both the 24 h reuse window and 72 h deletion without erasing the history metadata.
+- Revert: restore `NOT NULL` and `ON DELETE CASCADE` in a new migration.
+
 ## 2026-11-10 — Auth
 - Decision: Better Auth 1.7 + Drizzle adapter on the existing schema (no schema changes needed); email/password with console verification links, `requireEmailVerification: false`; Google only when both env vars are set; signup credits granted in `databaseHooks.user.create.after`; middleware checks the session cookie only, pages re-check the session server-side.
 - Options: Auth.js, Lucia (deprecated), Clerk (hosted).
