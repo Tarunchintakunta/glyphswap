@@ -8,6 +8,13 @@
       "when": 1794318137674,
       "tag": "0000_strange_marauders",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794400000000,
+      "tag": "0001_editor_api",
+      "breakpoints": true
     }
   ]
 }
