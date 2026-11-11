@@ -21,5 +21,5 @@ describe.skipIf(!url)("credits", () => {
     await grantSignupCredits(db, userId, 20)
     await db.insert(creditLedger).values({ userId, delta: -1, reason: "job" })
     expect(await creditBalance(db, userId)).toBe(19)
-  })
+  }, 20000)
 })

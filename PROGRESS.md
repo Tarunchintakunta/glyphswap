@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | 0 Teardown | done (#2) | TEARDOWN.md from public pages; 30 parity, 10 beat-it items; screenshots, network capture and baselines skipped |
 | 1 Bootstrap | done (#1) | monorepo, CI, stub inference, Drizzle schema |
-| 2 Neon | blocked | no Neon credentials on the build machine |
+| 2 Neon | done locally | migrations applied from local `.env`; Vercel env still open |
 | 3 Auth + login | done (#3) | Better Auth + Drizzle, account deletion, signup credits |
 | 4 Landing | done (#3) | hero, languages, API teaser, FAQ, legal pages |
 | 5 Inference | done (#4) | Result B plus Lanczos Result C; Result A stays off unless `ENABLE_DIFFUSION` |

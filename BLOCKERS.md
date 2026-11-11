@@ -1,6 +1,6 @@
 # Blockers (needs a human)
 
-1. **Neon**: create a Neon project `glyphswap` (or provide a Neon API key) and put `DATABASE_URL` in `.env` and Vercel env. Migrations: `pnpm --filter @glyphswap/db db:generate && pnpm --filter @glyphswap/db db:migrate`.
+1. **Neon on Vercel**: local `.env` has `DATABASE_URL` and `pnpm db:migrate` has been applied. The same URL still has to be added in the Vercel project env. Do not commit it.
 2. **Vercel**: `vercel login` and link `apps/web`, or provide a Vercel token.
 3. **Render**: provide a Render API key or connect the repo via the Render dashboard for the inference service.
 4. **Google OAuth** (optional): consent screen + client id/secret. Email and password work without them. Without both env vars the Google button stays hidden. Redirect URI: `<BETTER_AUTH_URL>/api/auth/callback/google`.
