@@ -21,6 +21,9 @@ export const auth = betterAuth({
     googleClientId && googleClientSecret
       ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
       : {},
+  user: {
+    deleteUser: { enabled: true },
+  },
   databaseHooks: {
     user: {
       create: {
