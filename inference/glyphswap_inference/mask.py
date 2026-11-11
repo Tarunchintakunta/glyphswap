@@ -19,7 +19,7 @@ def text_mask(shape: tuple[int, ...], polygons: Sequence[Sequence[Point]]) -> np
     mask = np.zeros(shape[:2], np.uint8)
     for polygon in polygons:
         single = np.zeros_like(mask)
-        cv2.fillPoly(single, [np.round(np.asarray(polygon)).astype(np.int32)], 255)
+        cv2.fillPoly(single, [np.round(np.asarray(polygon)).astype(np.int32)], (255,))
         radius = dilation(polygon_height(polygon))
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius + 1, 2 * radius + 1))
         mask = np.maximum(mask, cv2.dilate(single, kernel))

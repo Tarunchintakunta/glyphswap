@@ -13,7 +13,18 @@ from glyphswap_inference.pipeline import Edit, result_b
 from glyphswap_inference.settings import settings
 
 Kind = Literal["A", "B", "C"]
-Stage = Literal["queued", "ocr", "masking", "inpainting", "rendering", "blending", "done", "failed"]
+Stage = Literal[
+    "queued",
+    "ocr",
+    "masking",
+    "inpainting",
+    "rendering",
+    "blending",
+    "diffusion",
+    "upscale",
+    "done",
+    "failed",
+]
 
 
 class ResultInfo(BaseModel):
@@ -67,15 +78,39 @@ class Job:
             update={"status": "running", "stage": stage, "progress": progress}
         )
 
+    def store_png(self, kind: Kind, image: np.ndarray) -> None:
+        ok, png = cv2.imencode(".png", image)
+        if not ok:
+            raise RuntimeError("png encoding failed")
+        self.outputs[kind] = png.tobytes()
+        height, width = image.shape[:2]
+        self.status.results[kind] = ResultInfo(status="ready", width=width, height=height)
+
+    def finish_c(self, rendered: np.ndarray) -> None:
+        if "C" not in self.status.results:
+            return
+        if not settings.enable_upscale:
+            self.status.results["C"] = ResultInfo(
+                status="unavailable", reason="disabled (ENABLE_UPSCALE=false)"
+            )
+            return
+        height, width = rendered.shape[:2]
+        if max(height, width) / max(min(height, width), 1) > 3:
+            self.status.results["C"] = ResultInfo(
+                status="unavailable", reason="aspect_ratio_unsupported"
+            )
+            return
+        self.report("upscale", 95)
+        scaled = cv2.resize(rendered, (width * 2, height * 2), interpolation=cv2.INTER_LANCZOS4)
+        self.store_png("C", scaled)
+
     def run(self) -> None:
-        if "B" in self.status.results:
-            result = result_b(self.image, self.edits, self.lang, self.report)
-            ok, png = cv2.imencode(".png", result)
-            if not ok:
-                raise RuntimeError("png encoding failed")
-            self.outputs["B"] = png.tobytes()
-            height, width = result.shape[:2]
-            self.status.results["B"] = ResultInfo(status="ready", width=width, height=height)
+        rendered = None
+        if "B" in self.status.results or "C" in self.status.results:
+            rendered = result_b(self.image, self.edits, self.lang, self.report)
+            if "B" in self.status.results:
+                self.store_png("B", rendered)
+            self.finish_c(rendered)
         self.status = self.status.model_copy(
             update={"status": "done", "stage": "done", "progress": 100}
         )

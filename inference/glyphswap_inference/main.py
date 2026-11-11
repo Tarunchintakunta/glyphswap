@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
+from io import BytesIO
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -7,6 +8,7 @@ import cv2
 import numpy as np
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.responses import Response, StreamingResponse
+from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 
@@ -52,6 +54,10 @@ class EditItem(BaseModel):
     new_text: str = Field(default="", max_length=500)
     old_text: str | None = Field(default=None, max_length=500)
     remove: bool = False
+    font_family: str | None = Field(default=None, max_length=80)
+    font_size: float | None = Field(default=None, gt=0, le=400)
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
+    angle: float | None = Field(default=None, ge=-180, le=180)
 
 
 class JobRequest(BaseModel):
@@ -67,14 +73,32 @@ class JobAccepted(BaseModel):
 
 
 def decode(data: bytes) -> np.ndarray:
-    if len(data) > settings.max_upload_mb * 1024 * 1024:
+    if len(data) > settings.max_input_bytes:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "image too large")
-    image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    if image is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "image could not be decoded")
-    scale = settings.max_side / max(image.shape[:2])
+    try:
+        with Image.open(BytesIO(data)) as opened:
+            oriented = ImageOps.exif_transpose(opened)
+            if oriented is None:
+                raise UnidentifiedImageError("empty image")
+            if oriented.mode == "CMYK":
+                rgb = oriented.convert("RGB")
+            elif oriented.mode in {"RGBA", "LA", "P"}:
+                rgba = oriented.convert("RGBA")
+                rgb = Image.new("RGB", rgba.size, (255, 255, 255))
+                rgb.paste(rgba, mask=rgba.getchannel("A"))
+            else:
+                rgb = oriented.convert("RGB")
+    except (UnidentifiedImageError, OSError) as error:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "image could not be decoded") from error
+    image = cv2.cvtColor(np.asarray(rgb), cv2.COLOR_RGB2BGR)
+    height, width = image.shape[:2]
+    if min(height, width) < settings.min_input_side:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "image is smaller than 32 px")
+    if max(height, width) > settings.max_input_side:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "image is larger than 8000 px")
+    scale = settings.max_side / max(height, width)
     if scale < 1:
-        size = (round(image.shape[1] * scale), round(image.shape[0] * scale))
+        size = (round(width * scale), round(height * scale))
         image = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
     return np.asarray(image)
 
@@ -149,7 +173,17 @@ async def create_job(
     else:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "image or image_key is required")
     edits = [
-        Edit(item.polygon, item.new_text, item.remove, item.old_text) for item in request.edits
+        Edit(
+            item.polygon,
+            item.new_text,
+            item.remove,
+            item.old_text,
+            item.font_family,
+            item.font_size,
+            item.color,
+            item.angle,
+        )
+        for item in request.edits
     ]
     job = Job(pixels, edits, list(dict.fromkeys(request.results)), request.lang)
     queue.submit(job)

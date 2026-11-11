@@ -5,7 +5,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
     inference_token: str = "dev-token"
-    max_upload_mb: int = 8
+    max_input_bytes: int = 20 * 1024 * 1024
+    max_input_side: int = 8000
+    min_input_side: int = 32
     torch_device: str = "auto"
     models_dir: str = "./models"
     local_storage_dir: str = "./data"

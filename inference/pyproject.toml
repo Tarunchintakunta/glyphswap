@@ -55,7 +55,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["paddleocr.*", "doctr.*", "torch.*"]
+module = ["paddleocr", "paddleocr.*", "doctr", "doctr.*", "torch", "torch.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 
